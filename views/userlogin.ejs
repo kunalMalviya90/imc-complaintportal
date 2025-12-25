@@ -1,107 +1,91 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <script
-      src="https://kit.fontawesome.com/64d58efce2.js"
-      crossorigin="anonymous"
-    ></script>
-    <link rel="stylesheet" type="text/css" href="/css/userlogin.css" />
-    <title>Login Form</title>
-  </head>
-  <body>
-    <div class="container">
-      <div class="forms-container">
-        <div class="signin-signup">
-          <form id="userlogin" class="sign-in-form">
-            <img src="/images/IMClogo.png" width="30%" height="20%">
-            <h2 class="title">User Login</h2>
-            <div class="input-field">
-              <i class="fas fa-user"></i>
-              <input type="text" name="username" placeholder="Username" autocomplete="username"/>
-            </div>
-            <div class="input-field">
-              <i class="fas fa-user"></i>
-              <input type="text" name="employeeID" placeholder="Employee ID" autocomplete="organization" />
-            </div>
-            <div class="input-field">
-              <i class="fas fa-envelope"></i>
-              <input type="email" name="email" placeholder="Email" autocomplete="email" />
-            </div>
-            <div class="input-field">
-              <i class="fas fa-lock"></i>
-              <input type="password" id="user-password" name="password" placeholder="Password" autocomplete="current-password" />
-              <i class="fas fa-eye toggle-password" onclick="togglePasswordVisibility('user-password', this)"></i>
-            </div>
-            <div class="input-field">
-              <i class="fas fa-lock"></i>
-              <input type="password" id="user-otp" name="otp" placeholder="OTP" autocomplete="one-time-code"/>
-              <i class="fas fa-eye toggle-password" onclick="togglePasswordVisibility('user-otp', this)"></i>
-            </div>
-            <div class="otp-buttons">
-              <button type="button" class="btn small-btn" onclick="sendOTP('userlogin')">Send OTP</button>
-              <button type="button" class="btn small-btn" onclick="resendOTP('userlogin')">Resend OTP</button>
-            </div>
-            <input type="submit" value="Login" class="btn solid"  onclick="submituserForm(event)"/>
-          </form>
 
-          <form id="adminlogin" class="sign-up-form">
-            <img src="/images/IMClogo.png" width="30%" height="20%">
-            <h2 class="title">Admin Login</h2>
-            <div class="input-field">
-              <i class="fas fa-user"></i>
-              <input type="text" name="username" placeholder="Username" autocomplete="username"/>
-            </div>
-            <div class="input-field">
-              <i class="fas fa-user"></i>
-              <input type="text" name="employeeID" placeholder="Employee ID" autocomplete="organization"/>
-            </div>
-            <div class="input-field">
-              <i class="fas fa-envelope"></i>
-              <input type="email" name="email" placeholder="Email" autocomplete="email" />
-            </div>
-            <div class="input-field">
-              <i class="fas fa-lock"></i>
-              <input type="password" id="admin-password" name="password" placeholder="Password" autocomplete="current-password" />
-              <i class="fas fa-eye toggle-password" onclick="togglePasswordVisibility('admin-password', this)"></i>
-            </div>
-            <div class="input-field">
-              <i class="fas fa-lock"></i>
-              <input type="password" id="admin-otp" name="otp" placeholder="OTP" autocomplete="one-time-code" />
-              <i class="fas fa-eye toggle-password" onclick="togglePasswordVisibility('admin-otp', this)"></i>
-            </div>
-            <div class="otp-buttons">
-              <button type="button" class="btn small-btn" onclick="sendOTP('adminlogin')">Send OTP</button>
-              <button type="button" class="btn small-btn" onclick="resendOTP('adminlogin')">Resend OTP</button>
-            </div>
-            <input type="submit" class="btn solid" value="Login" onclick="submitadminForm(event)" />
-          </form>
-        </div>
-      </div>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://kit.fontawesome.com/64d58efce2.js" crossorigin="anonymous"></script>
+  <link rel="stylesheet" type="text/css" href="/css/userlogin.css" />
+  <title>Login Form</title>
+</head>
 
-      <div class="panels-container">
-        <div class="panel left-panel">
-          <div class="content">
-            <h3>Not a user ?</h3>
-            <button class="btn transparent" id="sign-up-btn">
-              Login as Admin
-            </button>
+<body>
+  <div class="container">
+    <div class="forms-container">
+      <div class="signin-signup">
+        <form id="userlogin" class="sign-in-form">
+          <img src="/images/IMClogo.png" width="30%" height="20%">
+          <h2 class="title">User Login</h2>
+          <div class="input-field">
+            <i class="fas fa-user"></i>
+            <input type="text" name="username" placeholder="Username" autocomplete="username" />
           </div>
-          <img src="/images/G20.png" class="image" alt="" />
-        </div>
-        <div class="panel right-panel">
-          <div class="content">
-            <h3>One of us ?</h3>
-            <button class="btn transparent" id="sign-in-btn">
-              Login as a User
-            </button>
+          <div class="input-field">
+            <i class="fas fa-user"></i>
+            <input type="text" name="employeeID" placeholder="Employee ID" autocomplete="organization" />
           </div>
-          <img src="/images/G20.png" class="image" alt="" />
-        </div>
+          <div class="input-field">
+            <i class="fas fa-envelope"></i>
+            <input type="email" name="email" placeholder="Email" autocomplete="email" />
+          </div>
+          <div class="input-field">
+            <i class="fas fa-lock"></i>
+            <input type="password" id="user-password" name="password" placeholder="Password"
+              autocomplete="current-password" />
+            <i class="fas fa-eye toggle-password" onclick="togglePasswordVisibility('user-password', this)"></i>
+          </div>
+          <input type="submit" value="Login" class="btn solid" onclick="submituserForm(event)" />
+        </form>
+
+        <form id="adminlogin" class="sign-up-form">
+          <img src="/images/IMClogo.png" width="30%" height="20%">
+          <h2 class="title">Admin Login</h2>
+          <div class="input-field">
+            <i class="fas fa-user"></i>
+            <input type="text" name="username" placeholder="Username" autocomplete="username" />
+          </div>
+          <div class="input-field">
+            <i class="fas fa-user"></i>
+            <input type="text" name="employeeID" placeholder="Employee ID" autocomplete="organization" />
+          </div>
+          <div class="input-field">
+            <i class="fas fa-envelope"></i>
+            <input type="email" name="email" placeholder="Email" autocomplete="email" />
+          </div>
+          <div class="input-field">
+            <i class="fas fa-lock"></i>
+            <input type="password" id="admin-password" name="password" placeholder="Password"
+              autocomplete="current-password" />
+            <i class="fas fa-eye toggle-password" onclick="togglePasswordVisibility('admin-password', this)"></i>
+          </div>
+          <input type="submit" class="btn solid" value="Login" onclick="submitadminForm(event)" />
+        </form>
       </div>
     </div>
 
-    <script src="/js/userlogin.js"></script>
-  </body>
+    <div class="panels-container">
+      <div class="panel left-panel">
+        <div class="content">
+          <h3>Not a user ?</h3>
+          <button class="btn transparent" id="sign-up-btn">
+            Login as Admin
+          </button>
+        </div>
+        <img src="/images/G20.png" class="image" alt="" />
+      </div>
+      <div class="panel right-panel">
+        <div class="content">
+          <h3>One of us ?</h3>
+          <button class="btn transparent" id="sign-in-btn">
+            Login as a User
+          </button>
+        </div>
+        <img src="/images/G20.png" class="image" alt="" />
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/userlogin.js"></script>
+</body>
+
 </html>

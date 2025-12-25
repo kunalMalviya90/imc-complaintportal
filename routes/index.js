@@ -5,38 +5,34 @@ const User = require('../models/user');
 const Admin = require('../models/admin');
 const OTP = require('../models/otp');
 const { Complaint, generateUniqueComplaintCode } = require('../models/complaint');
-const XLSX= require('xlsx');
-const path= require('path');
-const fs= require('fs');
+const XLSX = require('xlsx');
+const path = require('path');
+const fs = require('fs');
 const upload = require('./multerConfig');
 
 //middleware to check if user is authenticated or not
-function isAuthenticatedUser(req,res,next) {
-    if(req.session.user && req.session.user.role == 'User')
-    {
+function isAuthenticatedUser(req, res, next) {
+    if (req.session.user && req.session.user.role == 'User') {
         return next();
     }
-    else
-    {
+    else {
         res.redirect('/userlogin')
     }
 }
 
 //middleware to check if admin is authenticated or not
-function isAuthenticatedAdmin(req,res,next) {
-    if(req.session.admin && req.session.admin.role == 'Admin')
-    {
+function isAuthenticatedAdmin(req, res, next) {
+    if (req.session.admin && req.session.admin.role == 'Admin') {
         return next();
     }
-    else
-    {
+    else {
         res.redirect('/userlogin')
     }
 }
 
-router.post('/logout', (req,res)=>{
-    req.session.destroy(err=>{
-        if(err){
+router.post('/logout', (req, res) => {
+    req.session.destroy(err => {
+        if (err) {
             return res.status(500).send('Failed to log out');
         }
         res.clearCookie('connect.sid');
@@ -45,13 +41,22 @@ router.post('/logout', (req,res)=>{
 });
 
 router.post('/loginuser', async (req, res) => {
-    const { username, employeeID, email, password, otp } = req.body;
-  
+    const { username, employeeID, email, password } = req.body;
+
     try {
-        // Check if user exists
+        // Check if user exists by email
         const existingUser = await User.findOne({ email });
         if (!existingUser) {
             return res.status(400).json({ message: 'User does not exist' });
+        }
+
+        // Verify username and employee ID match
+        if (existingUser.username !== username) {
+            return res.status(400).json({ message: 'Username does not match' });
+        }
+
+        if (existingUser.employeeID !== employeeID) {
+            return res.status(400).json({ message: 'Employee ID does not match' });
         }
 
         // Compare password
@@ -60,29 +65,12 @@ router.post('/loginuser', async (req, res) => {
             return res.status(400).json({ message: 'Invalid password' });
         }
 
-        // Check OTP
-        const otpRecord = await OTP.findOne({ email });
-        if (!otpRecord) {
-            return res.status(400).json({ message: 'OTP not found' });
-        }
-
-        // Validate OTP
-        if (otpRecord.otp !== otp) {
-            return res.status(400).json({ message: 'Invalid OTP' });
-        }
-
-        // Check if OTP is expired
-        const currentTime = new Date();
-        if (currentTime > otpRecord.expireAt) {
-            return res.status(400).json({ message: 'OTP has expired' });
-        }
-
-        //store user information in session
+        // Store user information in session
         req.session.user = {
             id: existingUser._id,
-            username:existingUser.username,
-            email:existingUser.email,
-            role:'User',
+            username: existingUser.username,
+            email: existingUser.email,
+            role: 'User',
         };
 
         res.status(200).json({ message: 'User logged in successfully' });
@@ -93,13 +81,22 @@ router.post('/loginuser', async (req, res) => {
 });
 
 router.post('/loginadmin', async (req, res) => {
-    const { username, employeeID, email, password, otp } = req.body;
-  
+    const { username, employeeID, email, password } = req.body;
+
     try {
-        // Check if user exists
+        // Check if admin exists by email
         const existingAdmin = await Admin.findOne({ email });
         if (!existingAdmin) {
             return res.status(400).json({ message: 'Admin does not exist' });
+        }
+
+        // Verify username and employee ID match
+        if (existingAdmin.username !== username) {
+            return res.status(400).json({ message: 'Username does not match' });
+        }
+
+        if (existingAdmin.employeeID !== employeeID) {
+            return res.status(400).json({ message: 'Employee ID does not match' });
         }
 
         // Compare password
@@ -108,30 +105,15 @@ router.post('/loginadmin', async (req, res) => {
             return res.status(400).json({ message: 'Invalid password' });
         }
 
-        // Check OTP
-        const otpRecord = await OTP.findOne({ email });
-        if (!otpRecord) {
-            return res.status(400).json({ message: 'OTP not found' });
-        }
 
-        // Validate OTP
-        if (otpRecord.otp !== otp) {
-            return res.status(400).json({ message: 'Invalid OTP' });
-        }
 
-        // Check if OTP is expired
-        const currentTime = new Date();
-        if (currentTime > otpRecord.expireAt) {
-            return res.status(400).json({ message: 'OTP has expired' });
-        }
-
-        //store user information in session
+        // Store admin information in session
         req.session.admin = {
             id: existingAdmin._id,
-            username:existingAdmin.username,
-            email:existingAdmin.email,
-            role :'Admin'
-        };       
+            username: existingAdmin.username,
+            email: existingAdmin.email,
+            role: 'Admin'
+        };
 
         res.status(200).json({ message: 'Admin logged in successfully' });
     } catch (error) {
@@ -143,27 +125,27 @@ router.post('/loginadmin', async (req, res) => {
 router.post('/register', async (req, res) => {
     const { username, employeeID, email, password } = req.body;
 
-  // Check if user exists
-  const existingUser = await User.findOne({ email });
-  if (existingUser) {
-    return res.status(400).json({ message: 'User already exists' });
-  }
+    // Check if user exists
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+        return res.status(400).json({ message: 'User already exists' });
+    }
 
-  // Hash the password
-  const hashedPassword = await bcrypt.hash(password, 12);
+    // Hash the password
+    const hashedPassword = await bcrypt.hash(password, 12);
 
 
-  await User.create({ username, employeeID, email, password: hashedPassword });
+    await User.create({ username, employeeID, email, password: hashedPassword });
 
-  res.status(201).json({ message: "User registered successfully" });
+    res.status(201).json({ message: "User registered successfully" });
 });
 
 //Router to render file complaints page
 router.get('/filecomplaint', isAuthenticatedUser, async (req, res) => {
     try {
         console.log(req.session.user);
-        const email=req.session.user.email;
-        const displayUsers = await User.findOne({email});
+        const email = req.session.user.email;
+        const displayUsers = await User.findOne({ email });
         console.log(displayUsers);
         const complaintCode = await generateUniqueComplaintCode();
         res.render('filecomplaint', { complaintCode, displayUsers });
@@ -181,15 +163,15 @@ router.post('/newcomplaint', upload.single('complaintAttachment'), async (req, r
         const existingUser = await User.findOne({ email });
 
         if (existingUser && existingUser.username === employeeName && existingUser.employeeID === employeeCode) {
-            await Complaint.create({ 
+            await Complaint.create({
                 complaintCode,
-                employeeName, 
-                employeeCode, 
-                complaintTitle, 
-                department, 
-                email, 
-                complaintDate, 
-                complaintDetails, 
+                employeeName,
+                employeeCode,
+                complaintTitle,
+                department,
+                email,
+                complaintDate,
+                complaintDetails,
                 complaintAttachment
             });
             res.status(200).json({ message: 'Complaint submitted successfully' });
@@ -233,8 +215,8 @@ router.get('/filter-search', async (req, res) => {
 
     try {
         console.log(req.session.admin);
-        const email=req.session.admin.email;
-        const displayAdmin = await Admin.findOne({email});
+        const email = req.session.admin.email;
+        const displayAdmin = await Admin.findOne({ email });
         console.log(displayAdmin);
         // Fetch complaints based on the filter criteria
         const complaints = await Complaint.find(filter);
@@ -263,10 +245,10 @@ router.get('/dashboard', isAuthenticatedUser, async (req, res) => {
     try {
         //const users = await User.find({});
         console.log(req.session.user);
-        const email=req.session.user.email;
-        const displayUsers = await User.findOne({email});
+        const email = req.session.user.email;
+        const displayUsers = await User.findOne({ email });
         console.log(displayUsers);
-        const displayComplaints = await Complaint.find({email,status: { $in: ['Pending','In Progress' ,'Completed'  ] }});
+        const displayComplaints = await Complaint.find({ email, status: { $in: ['Pending', 'In Progress', 'Completed'] } });
         console.log(displayComplaints);
         const admins = await Admin.find({});
         const complaints = await Complaint.find();
@@ -290,25 +272,25 @@ router.get('/mycomplaint', isAuthenticatedUser, async (req, res) => {
     try {
         //const users = await User.find({});
         console.log(req.session.user);
-        const email=req.session.user.email;
-        const displayUsers = await User.findOne({email});
+        const email = req.session.user.email;
+        const displayUsers = await User.findOne({ email });
         console.log(displayUsers);
         const admins = await Admin.find({});
         //const complaints = await Complaint.find();
-        const displayComplaints = await Complaint.find({email,status: { $in: ['Pending','In Progress' ,'Completed'  ] }});
+        const displayComplaints = await Complaint.find({ email, status: { $in: ['Pending', 'In Progress', 'Completed'] } });
         console.log(displayComplaints);
         const pendingCount = await Complaint.countDocuments({ email, status: 'Pending' });
-        const solvedCount = await Complaint.countDocuments({ email,status: 'Completed' });
-        
+        const solvedCount = await Complaint.countDocuments({ email, status: 'Completed' });
+
 
         if (!displayUsers) {
             return res.status(404).send('User not found');
         }
 
-        res.render('mycomplaint', {        
+        res.render('mycomplaint', {
             displayUsers,
             displayComplaints,
-            admins,        
+            admins,
             pendingCount,
             solvedCount,
             department: '',  // Or null, if that's more appropriate
@@ -325,7 +307,7 @@ router.get('/mycomplaints/:employeeID', async (req, res) => {
     try {
         const employeeID = req.params.employeeID;
         const user = await User.findById(employeeID);
-        
+
         if (!user) {
             return res.status(404).send('User not found');
         }
@@ -382,13 +364,13 @@ router.get('/search-filter', async (req, res) => {
 
     try {
         console.log(req.session.user);
-        const email=req.session.user.email;
-        const displayUsers = await User.findOne({email});
+        const email = req.session.user.email;
+        const displayUsers = await User.findOne({ email });
         console.log(displayUsers);
         // Fetch complaints based on the filter criteria
         //const complaints = await Complaint.find(filter);
-        const displayComplaints = await Complaint.find({filter});
-        
+        const displayComplaints = await Complaint.find({ filter });
+
         // Count the number of pending and solved complaints
         const pendingCount = await Complaint.countDocuments({ email, status: 'Pending' });
         const solvedCount = await Complaint.countDocuments({ email, status: 'Completed' });
@@ -414,8 +396,8 @@ router.get('/admindash', isAuthenticatedAdmin, async (req, res) => {
         const users = await User.find({});
         const admins = await Admin.find({});
         console.log(req.session.admin);
-        const email=req.session.admin.email;
-        const displayAdmin = await Admin.findOne({email});
+        const email = req.session.admin.email;
+        const displayAdmin = await Admin.findOne({ email });
         console.log(displayAdmin);
         const complaints = await Complaint.find();
         //const pendingCount = await Complaint.countDocuments({ status: 'Pending' });
@@ -437,8 +419,8 @@ router.get('/admindash', isAuthenticatedAdmin, async (req, res) => {
 router.get('/alluser', isAuthenticatedAdmin, async (req, res) => {
     try {
         console.log(req.session.admin);
-        const email=req.session.admin.email;
-        const displayAdmin = await Admin.findOne({email});
+        const email = req.session.admin.email;
+        const displayAdmin = await Admin.findOne({ email });
         console.log(displayAdmin);
         const users = await User.find({});
         res.render('alluser', { users, displayAdmin });
@@ -453,8 +435,8 @@ router.get('/totaladmin', isAuthenticatedAdmin, async (req, res) => {
     try {
         const admins = await Admin.find({});
         console.log(req.session.admin);
-        const email=req.session.admin.email;
-        const displayAdmin = await Admin.findOne({email});
+        const email = req.session.admin.email;
+        const displayAdmin = await Admin.findOne({ email });
         console.log(displayAdmin);
         res.render('totaladmin', { displayAdmin, admins });
     } catch (error) {
@@ -467,8 +449,8 @@ router.get('/totaladmin', isAuthenticatedAdmin, async (req, res) => {
 router.get('/totalcomplaints', isAuthenticatedAdmin, async (req, res) => {
     try {
         console.log(req.session.admin);
-        const email=req.session.admin.email;
-        const displayAdmin = await Admin.findOne({email});
+        const email = req.session.admin.email;
+        const displayAdmin = await Admin.findOne({ email });
         console.log(displayAdmin);
         const complaints = await Complaint.find();
         const pendingCount = await Complaint.countDocuments({ status: 'Pending' });
@@ -542,9 +524,9 @@ router.get('/complaint-counts', async (req, res) => {
 // Route to handle file upload
 router.post('/upload', upload.single('file'), (req, res) => {
     try {
-      res.send('File uploaded successfully');
+        res.send('File uploaded successfully');
     } catch (error) {
-      res.status(500).send('Error uploading file');
+        res.status(500).send('Error uploading file');
     }
 });
 
@@ -552,7 +534,7 @@ router.post('/upload', upload.single('file'), (req, res) => {
 router.delete('/alluser/:employeeID', async (req, res) => {
     const { employeeID } = req.params;
     try {
-        const deletedUser = await User.findOneAndDelete({ employeeID:employeeID });
+        const deletedUser = await User.findOneAndDelete({ employeeID: employeeID });
         if (!deletedUser) {
             return res.status(404).json({ message: 'User not found' });
         }
@@ -567,7 +549,7 @@ router.delete('/alluser/:employeeID', async (req, res) => {
 router.delete('/totaladmin/:employeeID', async (req, res) => {
     const { employeeID } = req.params;
     try {
-        const deletedAdmin = await Admin.findOneAndDelete({ employeeID:employeeID });
+        const deletedAdmin = await Admin.findOneAndDelete({ employeeID: employeeID });
         if (!deletedAdmin) {
             return res.status(404).json({ message: 'Admin not found' });
         }
@@ -578,163 +560,153 @@ router.delete('/totaladmin/:employeeID', async (req, res) => {
     }
 });
 
-router.get('/download/excel', async (req,res) => {
+router.get('/download/excel', async (req, res) => {
     try {
-        const complaints = await Complaint.find({} , 'complaintCode employeeName employeeCode complaintTitle department email complaintDetails status').lean();
+        const complaints = await Complaint.find({}, 'complaintCode employeeName employeeCode complaintTitle department email complaintDetails status').lean();
         console.log(complaints);
         const dataToExport = complaints.map(complaint => ({
-            Complaint_Code:complaint.complaintCode,
-            Employee_Name:complaint.employeeName,
-            Employee_Code:complaint.employeeCode,
-            Complaint_Title:complaint.complaintTitle,
-            Department:complaint.department,
-            Employee_Email:complaint.email,
-            Complaint_Details:complaint.complaintDetails,
-            Status:complaint.status,
+            Complaint_Code: complaint.complaintCode,
+            Employee_Name: complaint.employeeName,
+            Employee_Code: complaint.employeeCode,
+            Complaint_Title: complaint.complaintTitle,
+            Department: complaint.department,
+            Employee_Email: complaint.email,
+            Complaint_Details: complaint.complaintDetails,
+            Status: complaint.status,
         }))
         const worksheet = XLSX.utils.json_to_sheet(dataToExport);
         const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook,worksheet,'Complaints');
-        const filePath = path.join(__dirname,'complaints.xlsx');
-        XLSX.writeFile(workbook,filePath);
-        res.download(filePath,(err) => 
-        {
-            if(err)
-            {
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Complaints');
+        const filePath = path.join(__dirname, 'complaints.xlsx');
+        XLSX.writeFile(workbook, filePath);
+        res.download(filePath, (err) => {
+            if (err) {
                 console.log(err);
             }
             fs.unlinkSync(filePath);
         });
     }
-    catch(err){
+    catch (err) {
         console.log(err);
         res.status(500).send('Error generating excel file');
     }
 })
 
 //download excel file for pending complaints
-router.get('/download/pending-excel', async (req,res) => {
+router.get('/download/pending-excel', async (req, res) => {
     try {
-        const complaints = await Complaint.find({status:'Pending'} , 'complaintCode employeeName employeeCode complaintTitle department email complaintDetails status').lean();
+        const complaints = await Complaint.find({ status: 'Pending' }, 'complaintCode employeeName employeeCode complaintTitle department email complaintDetails status').lean();
         console.log(complaints);
         const dataToExport = complaints.map(complaint => ({
-            Complaint_Code:complaint.complaintCode,
-            Employee_Name:complaint.employeeName,
-            Employee_Code:complaint.employeeCode,
-            Complaint_Title:complaint.complaintTitle,
-            Department:complaint.department,
-            Employee_Email:complaint.email,
-            Complaint_Details:complaint.complaintDetails,
-            Status:complaint.status,
+            Complaint_Code: complaint.complaintCode,
+            Employee_Name: complaint.employeeName,
+            Employee_Code: complaint.employeeCode,
+            Complaint_Title: complaint.complaintTitle,
+            Department: complaint.department,
+            Employee_Email: complaint.email,
+            Complaint_Details: complaint.complaintDetails,
+            Status: complaint.status,
         }))
         const worksheet = XLSX.utils.json_to_sheet(dataToExport);
         const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook,worksheet,'Complaints');
-        const filePath = path.join(__dirname,'pending-complaints.xlsx');
-        XLSX.writeFile(workbook,filePath);
-        res.download(filePath,(err) => 
-        {
-            if(err)
-            {
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Complaints');
+        const filePath = path.join(__dirname, 'pending-complaints.xlsx');
+        XLSX.writeFile(workbook, filePath);
+        res.download(filePath, (err) => {
+            if (err) {
                 console.log(err);
             }
             fs.unlinkSync(filePath);
         });
     }
-    catch(err){
+    catch (err) {
         console.log(err);
         res.status(500).send('Error generating pending complaints excel file');
     }
 })
 
 //download excel file for solved complaints
-router.get('/download/solved-excel', async (req,res) => {
+router.get('/download/solved-excel', async (req, res) => {
     try {
-        const complaints = await Complaint.find({status:'Completed'} , 'complaintCode employeeName employeeCode complaintTitle department email complaintDetails status').lean();
+        const complaints = await Complaint.find({ status: 'Completed' }, 'complaintCode employeeName employeeCode complaintTitle department email complaintDetails status').lean();
         console.log(complaints);
         const dataToExport = complaints.map(complaint => ({
-            Complaint_Code:complaint.complaintCode,
-            Employee_Name:complaint.employeeName,
-            Employee_Code:complaint.employeeCode,
-            Complaint_Title:complaint.complaintTitle,
-            Department:complaint.department,
-            Employee_Email:complaint.email,
-            Complaint_Details:complaint.complaintDetails,
-            Status:complaint.status,
+            Complaint_Code: complaint.complaintCode,
+            Employee_Name: complaint.employeeName,
+            Employee_Code: complaint.employeeCode,
+            Complaint_Title: complaint.complaintTitle,
+            Department: complaint.department,
+            Employee_Email: complaint.email,
+            Complaint_Details: complaint.complaintDetails,
+            Status: complaint.status,
         }))
         const worksheet = XLSX.utils.json_to_sheet(dataToExport);
         const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook,worksheet,'Complaints');
-        const filePath = path.join(__dirname,'solved-complaints.xlsx');
-        XLSX.writeFile(workbook,filePath);
-        res.download(filePath,(err) => 
-        {
-            if(err)
-            {
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Complaints');
+        const filePath = path.join(__dirname, 'solved-complaints.xlsx');
+        XLSX.writeFile(workbook, filePath);
+        res.download(filePath, (err) => {
+            if (err) {
                 console.log(err);
             }
             fs.unlinkSync(filePath);
         });
     }
-    catch(err){
+    catch (err) {
         console.log(err);
         res.status(500).send('Error generating solved complaints excel file');
     }
 })
 
-router.get('/download/user-excel', async (req,res) => {
+router.get('/download/user-excel', async (req, res) => {
     try {
-        const users = await User.find({} , 'username employeeID email').lean();
+        const users = await User.find({}, 'username employeeID email').lean();
         console.log(users);
         const dataToExport = users.map(user => ({
-            User_Name:user.username,
-            Employee_Code:user.employeeID,
-            Employee_Email:user.email,
+            User_Name: user.username,
+            Employee_Code: user.employeeID,
+            Employee_Email: user.email,
         }))
         const worksheet = XLSX.utils.json_to_sheet(dataToExport);
         const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook,worksheet,'Users');
-        const filePath = path.join(__dirname,'total-users.xlsx');
-        XLSX.writeFile(workbook,filePath);
-        res.download(filePath,(err) => 
-        {
-            if(err)
-            {
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Users');
+        const filePath = path.join(__dirname, 'total-users.xlsx');
+        XLSX.writeFile(workbook, filePath);
+        res.download(filePath, (err) => {
+            if (err) {
                 console.log(err);
             }
             fs.unlinkSync(filePath);
         });
     }
-    catch(err){
+    catch (err) {
         console.log(err);
         res.status(500).send('Error generating excel file for user');
     }
 })
 
-router.get('/download/admin-excel', async (req,res) => {
+router.get('/download/admin-excel', async (req, res) => {
     try {
-        const admins = await Admin.find({} , 'username employeeID email').lean();
+        const admins = await Admin.find({}, 'username employeeID email').lean();
         console.log(admins);
         const dataToExport = admins.map(admin => ({
-            User_Name:admin.username,
-            Employee_Code:admin.employeeID,
-            Employee_Email:admin.email,
+            User_Name: admin.username,
+            Employee_Code: admin.employeeID,
+            Employee_Email: admin.email,
         }))
         const worksheet = XLSX.utils.json_to_sheet(dataToExport);
         const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook,worksheet,'Admins');
-        const filePath = path.join(__dirname,'total-admins.xlsx');
-        XLSX.writeFile(workbook,filePath);
-        res.download(filePath,(err) => 
-        {
-            if(err)
-            {
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Admins');
+        const filePath = path.join(__dirname, 'total-admins.xlsx');
+        XLSX.writeFile(workbook, filePath);
+        res.download(filePath, (err) => {
+            if (err) {
                 console.log(err);
             }
             fs.unlinkSync(filePath);
         });
     }
-    catch(err){
+    catch (err) {
         console.log(err);
         res.status(500).send('Error generating excel file for admins');
     }

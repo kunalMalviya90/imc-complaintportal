@@ -33,13 +33,18 @@ app.use(session({
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
-//connection to mongodb
-mongoose.connect(process.env.MONGODB_URI || 
-    "mongodb+srv://nandinijoshi2016:exo-L%40ot9@cluster0.vyrr1j7.mongodb.net/employee_complaint?retryWrites=true&w=majority&appName=Cluster0", {
+//connection to mongodb - using local MongoDB for development
+const MONGODB_URI = process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/imc_complaints";
+
+mongoose.connect(MONGODB_URI, {
+    serverSelectionTimeoutMS: 5000, // Timeout after 5s instead of 30s
 }).then(() => {
-    console.log('Connected to MongoDB');   
+    console.log('✓ Connected to MongoDB successfully');
+    console.log('Database:', MONGODB_URI);
 }).catch((e) => {
-    console.log("Connection failed", e);
+    console.error('✗ MongoDB Connection failed:', e.message);
+    console.error('Make sure MongoDB service is running');
+    process.exit(1); // Exit if database connection fails
 }) 
 
 // Define routes

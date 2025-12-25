@@ -3,6 +3,24 @@ require("dotenv").config();
 
 const mailSender = async function (email, title, body) {
   try {
+    // Development mode: just log to console instead of sending email
+    const isDevelopment = process.env.NODE_ENV !== 'production' || !process.env.MAIL_USER;
+
+    if (isDevelopment) {
+      console.log('\n=========== EMAIL (Development Mode) ===========');
+      console.log('To:', email);
+      console.log('Subject:', title);
+      console.log('OTP:', body);
+      console.log('===============================================\n');
+
+      // Return a mock successful response
+      return {
+        messageId: 'dev-mode-' + Date.now(),
+        response: 'Development mode - email logged to console'
+      };
+    }
+
+    // Production mode: send actual email
     let transporter = nodemailer.createTransport({
       service: 'gmail',
       auth: {
