@@ -65,13 +65,7 @@ SESSION_SECRET=your-secret-key
 
 ## Deployment 🚀
 
-See [deployment_guide.md](deployment_guide.md) for complete deployment instructions.
-
 **Recommended**: Render.com + MongoDB Atlas (Free)
-
-## License
-
-MIT
 
 ## Contact
 
